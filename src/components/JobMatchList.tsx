@@ -33,6 +33,7 @@ import JobDetailView from "./JobDetailView";
 interface Skill {
   name: string;
   matched: boolean;
+  match?: boolean;
 }
 
 interface Job {
@@ -211,7 +212,15 @@ const JobMatchList = ({ jobs = [] }: JobMatchListProps) => {
   };
 
   const handleJobClick = (job: Job) => {
-    setSelectedJob(job);
+    // Convert the job to match JobDetailView's expected format
+    const convertedJob = {
+      ...job,
+      skills: job.skills.map((skill) => ({
+        name: skill.name,
+        match: skill.matched,
+      })),
+    };
+    setSelectedJob(convertedJob as any);
   };
 
   const handleCloseJobDetail = () => {
