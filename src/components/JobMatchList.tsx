@@ -215,16 +215,27 @@ const JobMatchList = ({ jobs = [] }: JobMatchListProps) => {
     // Convert the job to match JobDetailView's expected format
     const convertedJob = {
       ...job,
-      requirements: [],
-      responsibilities: [],
+      requirements: [
+        "Experience with modern JavaScript frameworks",
+        "Knowledge of responsive design principles",
+        "Strong problem-solving skills",
+      ],
+      responsibilities: [
+        "Develop and maintain web applications",
+        "Collaborate with cross-functional teams",
+        "Optimize application performance",
+      ],
       applicationDeadline: "Not specified",
       isSaved: false,
       skills: job.skills.map((skill) => ({
         name: skill.name,
         match: skill.matched,
+        strength: skill.matched
+          ? Math.floor(Math.random() * 30) + 70
+          : undefined,
       })),
     };
-    setSelectedJob(convertedJob as any);
+    setSelectedJob(convertedJob);
   };
 
   const handleCloseJobDetail = () => {
