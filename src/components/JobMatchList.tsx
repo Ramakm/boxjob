@@ -215,6 +215,10 @@ const JobMatchList = ({ jobs = [] }: JobMatchListProps) => {
     // Convert the job to match JobDetailView's expected format
     const convertedJob = {
       ...job,
+      requirements: [],
+      responsibilities: [],
+      applicationDeadline: "Not specified",
+      isSaved: false,
       skills: job.skills.map((skill) => ({
         name: skill.name,
         match: skill.matched,
