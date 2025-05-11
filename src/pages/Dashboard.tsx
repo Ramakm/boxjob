@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,15 +17,19 @@ import { Badge } from "@/components/ui/badge";
 import ResumeUploader from "../components/ResumeUploader";
 import JobMatchList from "../components/JobMatchList";
 import SkillGapAnalysis from "../components/SkillGapAnalysis";
+import { motion, AnimatePresence } from "framer-motion";
+import { Spotlight } from "@/components/ui/spotlight";
+import { signOut, getInitials } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
-const Dashboard = () => {
+const Dashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState("profile");
 
-  // Mock user data
-  const user = {
-    name: "Alex Johnson",
-    email: "alex.johnson@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
+  // User profile data (combine auth user with profile data)
+  const [profile, setProfile] = useState({
+    name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || "User",
+    email: user?.email || "user@example.com",
+    avatar: user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || "User"}",
     profileCompletion: 85,
     resumeUploaded: true,
     skills: ["JavaScript", "React", "Node.js", "TypeScript", "UI/UX Design"],
@@ -51,12 +55,45 @@ const Dashboard = () => {
     jobMatches: 24,
     savedJobs: 5,
     applications: 3,
+  });
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    },
+    exit: { opacity: 0 }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.4 }
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <motion.div 
+      className="min-h-screen bg-background flex"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
       {/* Sidebar */}
-      <div className="w-64 border-r bg-card p-4 flex flex-col">
+      <motion.div 
+        className="w-64 border-r bg-card p-4 flex flex-col"
+        variants={itemVariants}
         <div className="text-2xl font-bold mb-8 text-primary">ResuMatch</div>
 
         <nav className="space-y-2 flex-1">
@@ -109,6 +146,7 @@ const Dashboard = () => {
           <Button
             variant="ghost"
             className="w-full justify-start text-destructive"
+            onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Logout
@@ -117,9 +155,13 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <motion.div 
+        className="flex-1 flex flex-col"
+        variants={itemVariants}
         {/* Header */}
-        <header className="border-b p-4 flex justify-between items-center bg-card">
+        <motion.header 
+          className="border-b p-4 flex justify-between items-center bg-card"
+          variants={itemVariants}
           <h1 className="text-xl font-semibold">Dashboard</h1>
 
           <div className="flex items-center gap-4">
@@ -129,24 +171,23 @@ const Dashboard = () => {
 
             <div className="flex items-center gap-2">
               <Avatar>
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={profile.avatar} alt={profile.name} />
                 <AvatarFallback>
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {getInitials(profile.name)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-sm font-medium">{profile.name}</p>
+                <p className="text-xs text-muted-foreground">{profile.email}</p>
               </div>
             </div>
           </div>
-        </header>
+        </motion.header>
 
         {/* Content Area */}
-        <main className="flex-1 p-6 overflow-auto">
+        <motion.main 
+          className="flex-1 p-6 overflow-auto"
+          variants={itemVariants}
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
@@ -166,26 +207,23 @@ const Dashboard = () => {
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center">
                       <Avatar className="h-24 w-24 mb-4">
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarImage src={profile.avatar} alt={profile.name} />
                         <AvatarFallback className="text-2xl">
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
+                          {getInitials(profile.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <h2 className="text-xl font-bold">{user.name}</h2>
-                      <p className="text-muted-foreground mb-4">{user.email}</p>
+                      <h2 className="text-xl font-bold">{profile.name}</h2>
+                      <p className="text-muted-foreground mb-4">{profile.email}</p>
 
                       <div className="w-full mt-4">
                         <div className="flex justify-between mb-2">
                           <span className="text-sm">Profile Completion</span>
                           <span className="text-sm font-medium">
-                            {user.profileCompletion}%
+                            {profile.profileCompletion}%
                           </span>
                         </div>
                         <Progress
-                          value={user.profileCompletion}
+                          value={profile.profileCompletion}
                           className="h-2"
                         />
                       </div>
@@ -193,17 +231,17 @@ const Dashboard = () => {
                       <div className="grid grid-cols-3 gap-2 w-full mt-6 text-center">
                         <div className="p-2 rounded-md bg-muted">
                           <p className="text-2xl font-bold">
-                            {user.jobMatches}
+                            {profile.jobMatches}
                           </p>
                           <p className="text-xs">Matches</p>
                         </div>
                         <div className="p-2 rounded-md bg-muted">
-                          <p className="text-2xl font-bold">{user.savedJobs}</p>
+                          <p className="text-2xl font-bold">{profile.savedJobs}</p>
                           <p className="text-xs">Saved</p>
                         </div>
                         <div className="p-2 rounded-md bg-muted">
                           <p className="text-2xl font-bold">
-                            {user.applications}
+                            {profile.applications}
                           </p>
                           <p className="text-xs">Applied</p>
                         </div>
@@ -216,7 +254,7 @@ const Dashboard = () => {
                 <Card className="md:col-span-2">
                   <CardContent className="pt-6">
                     <h2 className="text-xl font-bold mb-4">Resume</h2>
-                    {user.resumeUploaded ? (
+                    {profile.resumeUploaded ? (
                       <div>
                         <div className="flex justify-between items-center mb-4">
                           <div>
@@ -232,7 +270,7 @@ const Dashboard = () => {
                           <div>
                             <h3 className="font-medium mb-2">Skills</h3>
                             <div className="flex flex-wrap gap-2">
-                              {user.skills.map((skill, index) => (
+                              {profile.skills.map((skill, index) => (
                                 <Badge key={index} variant="secondary">
                                   {skill}
                                 </Badge>
@@ -243,17 +281,20 @@ const Dashboard = () => {
                           <div>
                             <h3 className="font-medium mb-2">Experience</h3>
                             <div className="space-y-2">
-                              {user.experience.map((exp, index) => (
-                                <div
+                              {profile.experience.map((exp, index) => (
+                                <motion.div
                                   key={index}
                                   className="border-l-2 border-primary pl-4"
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.1 }}
                                 >
                                   <p className="font-medium">{exp.title}</p>
                                   <p className="text-sm">{exp.company}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {exp.duration}
                                   </p>
-                                </div>
+                                </motion.div>
                               ))}
                             </div>
                           </div>
@@ -261,17 +302,20 @@ const Dashboard = () => {
                           <div>
                             <h3 className="font-medium mb-2">Education</h3>
                             <div className="space-y-2">
-                              {user.education.map((edu, index) => (
-                                <div
+                              {profile.education.map((edu, index) => (
+                                <motion.div
                                   key={index}
                                   className="border-l-2 border-primary pl-4"
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.1 }}
                                 >
                                   <p className="font-medium">{edu.degree}</p>
                                   <p className="text-sm">{edu.institution}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {edu.year}
                                   </p>
-                                </div>
+                                </motion.div>
                               ))}
                             </div>
                           </div>
@@ -328,7 +372,13 @@ const Dashboard = () => {
                           "https://images.unsplash.com/photo-1607252650355-f7fd0460ccdb?w=300&q=80",
                       },
                     ].map((resource, index) => (
-                      <Card key={index} className="overflow-hidden">
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Card className="overflow-hidden hover:shadow-lg transition-all duration-300">
                         <div className="h-40 overflow-hidden">
                           <img
                             src={resource.image}
@@ -347,15 +397,16 @@ const Dashboard = () => {
                           </div>
                         </CardContent>
                       </Card>
+                      </motion.div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
-        </main>
-      </div>
-    </div>
+        </motion.main>
+      </motion.div>
+    </motion.div>
   );
 };
 
